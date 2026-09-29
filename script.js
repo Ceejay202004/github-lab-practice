@@ -13,17 +13,17 @@ function load(){
     if(raw){
       const parsed = JSON.parse(raw);
       if(!parsed.gallery) parsed.gallery = [];
-      if(!parsed.letters) parsed.letters = [];
+      if(!parsed.yesDate) parsed.yesDate = '';
       return parsed;
     }
   }catch(e){}
   return {
     names:{a:'You', b:'Me'},
     startDate: new Date().toISOString().slice(0,10),
+    yesDate: '',
     msg:"Every love story is beautiful, but ours is my favorite.",
     photos:{a:null, b:null},
     gallery:[],
-    letters:[],
     notes:{her:[], him:[]},
     theme:'pink',
     activeTab:'her'
@@ -45,6 +45,11 @@ function fmtDate(iso){
   if(!iso) return '';
   const d = new Date(iso);
   return d.toLocaleDateString(undefined,{month:'short', day:'numeric', year:'numeric'});
+}
+function ordinal(n){
+  const s = ['th','st','nd','rd'];
+  const v = n % 100;
+  return n + (s[(v - 20) % 10] || s[v] || s[0]);
 }
 
 /* ---------- floating particles ---------- */
@@ -127,6 +132,116 @@ function renderHero(){
     : 'Together since —';
   if(DATA.photos.a) $('#avaA').src = DATA.photos.a;
   if(DATA.photos.b) $('#avaB').src = DATA.photos.b;
+}
+
+/* ---------- ANNIVERSARY LOGIC ---------- */
+function renderAnniversaries(){
+  const grid = document.getElementById('anniversaryGrid');
+  const line = document.getElementById('yesDateLine');
+  if(!grid) return;
+
+  if(!DATA.yesDate){
+    line.textContent = 'Set the date she said YES in "Our Details" below.';
+    grid.innerHTML = `<div class="empty" style="grid-column:1/-1;">💍 No date set yet.<br>Scroll down and fill "The day she said YES".</div>`;
+    return;
+  }
+
+  const yes = new Date(DATA.yesDate + 'T00:00:00');
+  const now = new Date();
+  now.setHours(0,0,0,0);
+
+  line.innerHTML = `💍 She said YES on <b>${fmtDate(DATA.yesDate)}</b>`;
+
+  /* ----- MONTHLY ANNIVERSARY ----- */
+  const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  // total months since yesDate
+  let totalMonths = (now.getFullYear() - yes.getFullYear()) * 12 + (now.getMonth() - yes.getMonth());
+  if(now.getDate() < yes.getDate()) totalMonths--;
+
+  // next monthly anniversary
+  let nextMonthDate = new Date(yes);
+  nextMonthDate.setMonth(yes.getMonth() + totalMonths + 1);
+
+  // if that day doesn't exist in the month (e.g. 31st), clamp to last day
+  const daysInNextMonth = new Date(nextMonthDate.getFullYear(), nextMonthDate.getMonth()+1, 0).getDate();
+  if(nextMonthDate.getDate() > daysInNextMonth){
+    nextMonthDate.setDate(daysInNextMonth);
+  }
+
+  // is today the monthly anniversary?
+  const isMonthlyToday = (now.getDate() === yes.getDate() ||
+    (yes.getDate() > 28 && now.getDate() === new Date(now.getFullYear(), now.getMonth()+1, 0).getDate()));
+
+  let monthlyDays;
+  if(isMonthlyToday){
+    monthlyDays = 0;
+  } else {
+    monthlyDays = Math.ceil((nextMonthDate - now) / 86400000);
+  }
+  const nextMonthLabel = monthNames[nextMonthDate.getMonth()] + ' ' + nextMonthDate.getDate();
+
+  /* ----- YEARLY ANNIVERSARY ----- */
+  const yearsSince = now.getFullYear() - yes.getFullYear();
+  const thisYearAnniv = new Date(now.getFullYear(), yes.getMonth(), yes.getDate());
+  const nextYearAnniv = thisYearAnniv >= now
+    ? thisYearAnniv
+    : new Date(now.getFullYear()+1, yes.getMonth(), yes.getDate());
+
+  const isYearlyToday = thisYearAnniv.getTime() === now.getTime();
+  let yearlyDays = isYearlyToday ? 0 : Math.ceil((nextYearAnniv - now) / 86400000);
+  const nextYearLabel = fmtDate(nextYearAnniv);
+
+  /* ----- RENDER MONTHLY BOX ----- */
+  const monthlyBox = isMonthlyToday ? 'today' : '';
+  const monthlySub = isMonthlyToday
+    ? '🎉 Today is our monthly anniversary!'
+    : `Next: ${nextMonthLabel}`;
+
+  const totalMonthsLabel = totalMonths < 0 ? 0 : totalMonths;
+
+  /* ----- RENDER YEARLY BOX ----- */
+  const yearlyBox = isYearlyToday ? 'today' : '';
+  const yearlySub = isYearlyToday
+    ? '🎉 Happy Anniversary!'
+    : `Next: ${nextYearLabel}`;
+
+  grid.innerHTML = `
+    <div class="ann-box ${monthlyBox}">
+      <span class="ann-icon">🌙</span>
+      <div class="ann-label">Monthly</div>
+      <div class="ann-num">${monthlyDays}</div>
+      <div class="ann-unit">day${monthlyDays === 1 ? '' : 's'} to go</div>
+      <div class="ann-sub">${monthlySub}</div>
+    </div>
+    <div class="ann-box ${yearlyBox}">
+      <span class="ann-icon">💍</span>
+      <div class="ann-label">Yearly</div>
+      <div class="ann-num">${yearlyDays}</div>
+      <div class="ann-unit">day${yearlyDays === 1 ? '' : 's'} to go</div>
+      <div class="ann-sub">${yearlySub}</div>
+    </div>
+    <div class="ann-box" style="grid-column:1/-1;">
+      <span class="ann-icon">💕</span>
+      <div class="ann-label">Months Together</div>
+      <div class="ann-num">${totalMonthsLabel}</div>
+      <div class="ann-unit">month${totalMonthsLabel === 1 ? '' : 's'} since she said yes</div>
+      <div class="ann-sub">${ordinal(totalMonthsLabel)} month together ❤️</div>
+    </div>
+  `;
+
+  /* ----- CELEBRATION IF TODAY ----- */
+  if(isMonthlyToday || isYearlyToday){
+    if(!sessionStorage.getItem('annivCelebrated_' + now.toDateString())){
+      sessionStorage.setItem('annivCelebrated_' + now.toDateString(), '1');
+      setTimeout(()=>{
+        burst(window.innerWidth/2, window.innerHeight/2, '🎉', 40);
+        burst(window.innerWidth/2, 200, '💖', 20);
+        toast(isYearlyToday
+          ? '💍 Happy Anniversary, my love!'
+          : '🎉 Happy monthly anniversary!');
+      }, 800);
+    }
+  }
 }
 
 /* ---------- render notes ---------- */
@@ -222,19 +337,22 @@ function saveSettings(){
   DATA.names.a   = $('#inA').value.trim() || 'You';
   DATA.names.b   = $('#inB').value.trim() || 'Me';
   DATA.startDate = $('#inDate').value || DATA.startDate;
+  DATA.yesDate   = $('#inYesDate').value || '';
   DATA.msg       = $('#inMsg').value.trim();
   save();
   renderHero();
+  renderAnniversaries();
   tickCounter();
   toast('Saved ❤️');
   burst(window.innerWidth/2, 200, '❤️', 10);
 }
 
 function fillSettings(){
-  $('#inA').value    = DATA.names.a;
-  $('#inB').value    = DATA.names.b;
-  $('#inDate').value = DATA.startDate;
-  $('#inMsg').value  = DATA.msg;
+  $('#inA').value       = DATA.names.a;
+  $('#inB').value       = DATA.names.b;
+  $('#inDate').value    = DATA.startDate;
+  $('#inYesDate').value = DATA.yesDate || '';
+  $('#inMsg').value     = DATA.msg;
 }
 
 /* ---------- themes ---------- */
@@ -448,180 +566,6 @@ document.addEventListener('keydown', e => {
   });
 })();
 
-/* ============================================================
-   LOVE LETTERS
-   ============================================================ */
-
-const LETTER_TEMPLATES = [
-  "Open when you miss me",
-  "Open when you're sad",
-  "Open when you need motivation",
-  "Open on our anniversary",
-  "Open when we have a misunderstanding",
-  "Open when you want to know how much I love you",
-  "Open when you can't sleep",
-  "Open when you're happy",
-  "Open when you need a smile"
-];
-
-function renderLetters(){
-  const box = document.getElementById('lettersList');
-  if(!box) return;
-
-  const list = DATA.letters || [];
-  box.innerHTML = '';
-
-  if(!list.length){
-    box.innerHTML = `<div class="empty" style="grid-column:1/-1;">
-      No letters yet.<br>
-      Tap <b>"+ Write Letter"</b> to write your first one 💌
-    </div>`;
-    return;
-  }
-
-  list.slice().reverse().forEach(l => {
-    const card = document.createElement('div');
-    card.className = 'letter-card';
-    const preview = l.body.length > 60 ? l.body.slice(0,60) + '…' : l.body;
-    card.innerHTML = `
-      <div class="seal">${l.pin ? '🔒' : '💌'}</div>
-      <div class="l-title">${esc(l.title)}</div>
-      <div class="l-preview">${esc(preview)}</div>
-      <div class="l-date">
-        <span>${fmtDate(l.date)}</span>
-        ${l.pin ? '<span class="l-lock">PIN</span>' : ''}
-      </div>
-    `;
-
-    card.onclick = () => openLetter(l.id);
-
-    card.oncontextmenu = (e) => {
-      e.preventDefault();
-      if(confirm(`Delete "${l.title}"?`)){
-        DATA.letters = DATA.letters.filter(x => x.id !== l.id);
-        save();
-        renderLetters();
-        toast('Letter deleted');
-      }
-    };
-
-    box.appendChild(card);
-  });
-}
-
-function openLetterEditor(){
-  const chipHTML = LETTER_TEMPLATES
-    .map(t => `<button type="button" onclick="pickTemplate('${t.replace(/'/g,"\\'")}')">${t}</button>`)
-    .join('');
-
-  openModal(`
-    <button class="m-close" onclick="closeModal()">✕</button>
-    <h2>💌 Write a Love Letter</h2>
-    <p class="hint" style="margin-top:4px;">Pick a template or write your own title.</p>
-
-    <label>Title / When to open</label>
-    <input id="letterTitle" placeholder="Open when you miss me…">
-    <div class="template-chips">${chipHTML}</div>
-
-    <label>Your letter</label>
-    <textarea id="letterBody" placeholder="My love,&#10;&#10;…" style="min-height:180px;"></textarea>
-
-    <label>Optional PIN (leave empty for no lock)</label>
-    <input id="letterPin" placeholder="e.g. 1234" maxlength="8" inputmode="numeric">
-
-    <div class="form-actions">
-      <button class="btn ghost" onclick="closeModal()">Cancel</button>
-      <button class="btn" onclick="saveLetter()">Seal the Letter 💌</button>
-    </div>
-  `);
-}
-
-function pickTemplate(t){
-  const input = document.getElementById('letterTitle');
-  if(input) input.value = t;
-}
-
-function saveLetter(){
-  const title = document.getElementById('letterTitle').value.trim();
-  const body  = document.getElementById('letterBody').value.trim();
-  const pin   = document.getElementById('letterPin').value.trim();
-
-  if(!title){ toast('Add a title first 💕'); return; }
-  if(!body){ toast('Write your letter 💕'); return; }
-
-  DATA.letters.push({
-    id: Math.random().toString(36).slice(2,10),
-    title,
-    body,
-    pin: pin || null,
-    date: new Date().toISOString()
-  });
-
-  try { save(); } catch(err){
-    DATA.letters.pop();
-    toast('Storage full 💔');
-    return;
-  }
-
-  closeModal();
-  renderLetters();
-  toast('Letter sealed 💌');
-  burst(window.innerWidth/2, 200, '💌', 16);
-}
-
-function openLetter(id){
-  const l = DATA.letters.find(x => x.id === id);
-  if(!l) return;
-
-  if(l.pin){
-    const entered = prompt('🔒 This letter is protected. Enter PIN:');
-    if(entered !== l.pin){
-      toast('Wrong PIN 💔');
-      return;
-    }
-  }
-
-  openModal(`
-    <button class="m-close" onclick="closeModal()">✕</button>
-    <div class="letter-open">
-      <div class="l-icon">💖</div>
-      <div class="l-title-open">${esc(l.title)}</div>
-      <div class="l-date-open">${fmtDate(l.date)}</div>
-      <div class="l-body-open">${esc(l.body)}</div>
-      <div class="form-actions" style="margin-top:18px;justify-content:center;">
-        <button class="btn ghost" onclick="deleteLetter('${l.id}')">Delete</button>
-        <button class="btn" onclick="closeModal()">Close ❤️</button>
-      </div>
-    </div>
-  `);
-
-  burst(window.innerWidth/2, window.innerHeight/2, '💖', 20);
-}
-
-function deleteLetter(id){
-  if(!confirm('Delete this letter?')) return;
-  DATA.letters = DATA.letters.filter(x => x.id !== id);
-  save();
-  closeModal();
-  renderLetters();
-  toast('Letter deleted');
-}
-
-/* ---------- modal helpers ---------- */
-function openModal(html){
-  document.getElementById('modalBox').innerHTML = html;
-  document.getElementById('modal').classList.add('on');
-  document.body.style.overflow = 'hidden';
-}
-function closeModal(){
-  document.getElementById('modal').classList.remove('on');
-  document.body.style.overflow = '';
-}
-// close modal on backdrop tap
-document.getElementById('modal').addEventListener('click', e => {
-  if(e.target.id === 'modal') closeModal();
-});
-
 /* ---------- easter eggs ---------- */
 document.addEventListener('dblclick', e=>{
   if(e.target.id === 'brand'){
@@ -656,7 +600,8 @@ $('#secretHeart').onclick = (e)=>{
   fillSettings();
   switchTab(DATA.activeTab || 'her');
   renderGallery();
-  renderLetters();
+  renderAnniversaries();
   tickCounter();
   setInterval(tickCounter, 1000);
+  setInterval(renderAnniversaries, 60000); // refresh every minute
 })();
