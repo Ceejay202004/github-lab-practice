@@ -1,3 +1,4 @@
+
 /* ============================================================
    Our Little Universe — styles
    ============================================================ */
@@ -308,7 +309,71 @@ label{
 .gal-item:hover .gal-del{opacity:1;}
 .gal-item .gal-del:hover{background:#c2185b;}
 
-/* fullscreen viewer */
+/* ---------- love letters ---------- */
+.letters-list{
+  display:grid;
+  grid-template-columns:repeat(auto-fill, minmax(200px, 1fr));
+  gap:12px;
+}
+.letter-card{
+  position:relative;
+  padding:18px 16px;
+  border-radius:18px;
+  background:linear-gradient(160deg,#fffaf0,#ffe8f0);
+  border:1px solid rgba(255,92,138,.3);
+  cursor:pointer;
+  transition:transform .3s, box-shadow .3s;
+  box-shadow:0 10px 24px -14px rgba(194,24,91,.5);
+  overflow:hidden;
+}
+[data-theme="midnight"] .letter-card{
+  background:linear-gradient(160deg,#2a1535,#3a1b45);
+  border-color:rgba(255,255,255,.12);
+}
+.letter-card:hover{
+  transform:translateY(-4px) rotate(-1deg);
+  box-shadow:0 20px 40px -18px rgba(194,24,91,.7);
+}
+.letter-card .seal{
+  position:absolute;top:10px;right:12px;
+  font-size:1.4rem;
+  animation:beat 2s ease-in-out infinite;
+}
+.letter-card .l-title{
+  font-family:'Playfair Display',serif;
+  font-size:1.05rem;
+  line-height:1.3;
+  padding-right:26px;
+  margin-bottom:8px;
+  color:var(--deep);
+}
+[data-theme="midnight"] .letter-card .l-title{color:#ffb3c9;}
+.letter-card .l-preview{
+  font-size:.78rem;
+  color:var(--muted);
+  line-height:1.5;
+  display:-webkit-box;
+  -webkit-line-clamp:2;
+  -webkit-box-orient:vertical;
+  overflow:hidden;
+}
+.letter-card .l-date{
+  margin-top:10px;
+  font-size:.68rem;
+  letter-spacing:1px;
+  text-transform:uppercase;
+  color:var(--muted);
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+.letter-card .l-lock{
+  font-size:.7rem;
+  color:var(--deep);
+  font-weight:600;
+}
+
+/* ---------- fullscreen viewer ---------- */
 .viewer{
   position:fixed;inset:0;z-index:1000;
   background:rgba(10,5,15,.96);
@@ -347,6 +412,107 @@ label{
   text-shadow:0 2px 8px rgba(0,0,0,.8);
 }
 
+/* ---------- modal ---------- */
+.modal{
+  position:fixed;inset:0;z-index:900;
+  background:rgba(10,5,15,.75);
+  backdrop-filter:blur(10px);
+  display:none;
+  align-items:center;justify-content:center;
+  padding:20px;
+}
+.modal.on{display:flex;}
+.modal-box{
+  background:linear-gradient(160deg,#fffaf0,#ffe8f0);
+  border-radius:22px;
+  max-width:520px;
+  width:100%;
+  max-height:88vh;
+  overflow-y:auto;
+  padding:26px 22px;
+  box-shadow:0 40px 80px -20px rgba(0,0,0,.7);
+  animation:popIn .35s cubic-bezier(.2,.7,.3,1) both;
+  position:relative;
+}
+[data-theme="midnight"] .modal-box{
+  background:linear-gradient(160deg,#2a1535,#3a1b45);
+}
+@keyframes popIn{
+  from{opacity:0;transform:scale(.9) translateY(20px)}
+  to{opacity:1;transform:none}
+}
+.modal-box h2{
+  font-size:1.3rem;margin-bottom:4px;
+}
+.modal-box .m-close{
+  position:absolute;top:14px;right:16px;
+  background:transparent;border:none;
+  font-size:1.3rem;cursor:pointer;
+  color:var(--muted);line-height:1;
+  padding:4px;
+}
+.modal-box .m-close:hover{color:var(--deep);}
+
+/* letter templates */
+.template-chips{
+  display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 14px;
+}
+.template-chips button{
+  padding:8px 12px;
+  border-radius:999px;
+  border:1px solid var(--stroke);
+  background:rgba(255,255,255,.6);
+  font-family:inherit;font-size:.75rem;
+  color:var(--ink);cursor:pointer;
+  transition:.2s;
+}
+.template-chips button:hover{
+  background:linear-gradient(135deg,var(--rose),var(--purple));
+  color:#fff;border-color:transparent;
+  transform:translateY(-1px);
+}
+[data-theme="midnight"] .template-chips button{
+  background:rgba(40,20,60,.7);
+}
+
+/* opened letter view */
+.letter-open{
+  text-align:center;
+}
+.letter-open .l-icon{
+  font-size:2.4rem;
+  margin-bottom:8px;
+  animation:beat 1.4s ease-in-out infinite;
+}
+.letter-open .l-title-open{
+  font-family:'Playfair Display',serif;
+  font-size:1.4rem;
+  margin-bottom:6px;
+  color:var(--deep);
+}
+[data-theme="midnight"] .letter-open .l-title-open{color:#ffb3c9;}
+.letter-open .l-date-open{
+  font-size:.75rem;
+  letter-spacing:1.2px;
+  text-transform:uppercase;
+  color:var(--muted);
+  margin-bottom:18px;
+}
+.letter-open .l-body-open{
+  text-align:left;
+  font-family:'Playfair Display',serif;
+  font-size:1.05rem;
+  line-height:1.7;
+  white-space:pre-wrap;
+  padding:16px;
+  background:rgba(255,255,255,.5);
+  border-radius:14px;
+  border:1px solid var(--stroke);
+}
+[data-theme="midnight"] .letter-open .l-body-open{
+  background:rgba(20,10,35,.5);
+}
+
 /* ---------- empty state ---------- */
 .empty{
   text-align:center;padding:28px 10px;color:var(--muted);
@@ -367,8 +533,10 @@ label{
   background:linear-gradient(135deg,var(--rose),var(--purple));
   color:#fff;padding:12px 22px;border-radius:999px;font-size:.88rem;
   box-shadow:0 20px 40px -15px rgba(0,0,0,.55);
-  opacity:0;pointer-events:none;transition:.3s;z-index:600;
+  opacity:0;pointer-events:none;transition:.3s;z-index:1200;
   font-weight:500;
+  max-width:90vw;
+  text-align:center;
 }
 .toast.on{opacity:1;transform:translateX(-50%) translateY(0);}
 
@@ -400,5 +568,12 @@ label{
     grid-template-columns:repeat(auto-fill, minmax(100px, 1fr));
     gap:8px;
   }
+  .letters-list{
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+  }
+  .letter-card{padding:14px 12px;}
+  .letter-card .l-title{font-size:.95rem;}
   .viewer .v-nav{width:42px;height:42px;font-size:1.4rem;}
+  .modal-box{padding:22px 18px;border-radius:20px;}
 }
