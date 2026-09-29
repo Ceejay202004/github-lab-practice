@@ -10,13 +10,19 @@ let DATA = load();
 function load(){
   try{
     const raw = localStorage.getItem(KEY);
-    if(raw) return JSON.parse(raw);
+    if(raw){
+      const parsed = JSON.parse(raw);
+      // safety: make sure gallery exists
+      if(!parsed.gallery) parsed.gallery = [];
+      return parsed;
+    }
   }catch(e){}
   return {
     names:{a:'You', b:'Me'},
     startDate: new Date().toISOString().slice(0,10),
     msg:"Every love story is beautiful, but ours is my favorite.",
     photos:{a:null, b:null},
+    gallery:[],
     notes:{her:[], him:[]},
     theme:'pink',
     activeTab:'her'
@@ -148,7 +154,7 @@ function renderNotes(){
   });
 }
 
-/* ---------- actions ---------- */
+/* ---------- avatar photos ---------- */
 function uploadPhoto(e, who){
   const f = e.target.files[0]; if(!f) return;
   const reader = new FileReader();
@@ -164,7 +170,7 @@ function uploadPhoto(e, who){
       c.getContext('2d').drawImage(img, 0, 0, w, h);
       const data = c.toDataURL('image/jpeg', 0.85);
       DATA.photos[who] = data;
-      save();
+      try { save(); } catch(err){ toast('Storage full 💔'); return; }
       if(who==='a') $('#avaA').src = data; else $('#avaB').src = data;
       toast('Photo saved ❤️');
       burst(window.innerWidth/2, 200, '💖', 14);
@@ -175,6 +181,7 @@ function uploadPhoto(e, who){
   e.target.value = '';
 }
 
+/* ---------- notes actions ---------- */
 function switchTab(which){
   DATA.activeTab = which;
   save();
@@ -194,7 +201,7 @@ function addNote(){
     text: txt,
     date: new Date().toISOString()
   });
-  save();
+  try { save(); } catch(err){ toast('Storage full 💔'); return; }
   $('#noteInput').value = '';
   renderNotes();
   toast('Note saved 💌');
@@ -208,6 +215,7 @@ function delNote(id){
   renderNotes();
 }
 
+/* ---------- settings ---------- */
 function saveSettings(){
   DATA.names.a   = $('#inA').value.trim() || 'You';
   DATA.names.b   = $('#inB').value.trim() || 'Me';
@@ -258,6 +266,194 @@ function burst(x, y, icon='❤️', count=14){
   }
 }
 
+/* ============================================================
+   PHOTO GALLERY
+   ============================================================ */
+
+let viewerList = [];
+let viewerIdx = 0;
+
+/* ---------- Add photos (auto-resize) ---------- */
+function addGalleryPhotos(e){
+  const files = [...e.target.files];
+  if(!files.length) return;
+
+  files.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const maxDim = 800;
+        let {width: w, height: h} = img;
+        if(w > h && w > maxDim){ h = Math.round(h * maxDim / w); w = maxDim; }
+        else if(h > maxDim){ w = Math.round(w * maxDim / h); h = maxDim; }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+
+        const photo = {
+          id: Math.random().toString(36).slice(2,10),
+          src: dataUrl,
+          caption: '',
+          date: new Date().toISOString().slice(0,10),
+          fav: false
+        };
+
+        DATA.gallery.unshift(photo);
+        try {
+          save();
+        } catch(err) {
+          DATA.gallery.shift();
+          toast('Storage full — try smaller photos 💔');
+          return;
+        }
+
+        renderGallery();
+        burst(window.innerWidth/2, 200, '📸', 10);
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+
+  e.target.value = '';
+  toast('Photos added ❤️');
+}
+
+/* ---------- Render gallery ---------- */
+function renderGallery(){
+  const grid = document.getElementById('galleryGrid');
+  if(!grid) return;
+
+  const list = DATA.gallery || [];
+  grid.innerHTML = '';
+
+  if(!list.length){
+    grid.innerHTML = '<div class="empty" style="grid-column:1/-1;">No photos yet. Tap "+ Add Photos" to start 💕</div>';
+    return;
+  }
+
+  list.forEach(p => {
+    const item = document.createElement('div');
+    item.className = 'gal-item';
+    item.innerHTML = `
+      <img src="${p.src}" loading="lazy" alt="">
+      ${p.fav ? '<div class="gal-fav">❤️</div>' : ''}
+      <button class="gal-del" title="delete">✕</button>
+      ${p.caption ? `<div class="gal-cap">${esc(p.caption)}</div>` : ''}
+    `;
+
+    item.querySelector('img').onclick = (e) => {
+      e.stopPropagation();
+      openViewer(list, list.indexOf(p));
+    };
+
+    item.ondblclick = (e) => {
+      e.stopPropagation();
+      p.fav = !p.fav;
+      save();
+      renderGallery();
+      burst(e.clientX, e.clientY, p.fav ? '❤️' : '💔', 8);
+    };
+
+    item.querySelector('.gal-del').onclick = (e) => {
+      e.stopPropagation();
+      if(!confirm('Delete this photo?')) return;
+      DATA.gallery = DATA.gallery.filter(x => x.id !== p.id);
+      save();
+      renderGallery();
+    };
+
+    item.oncontextmenu = (e) => {
+      e.preventDefault();
+      editPhotoCaption(p.id);
+    };
+
+    grid.appendChild(item);
+  });
+}
+
+/* ---------- Edit caption & date ---------- */
+function editPhotoCaption(id){
+  const p = DATA.gallery.find(x => x.id === id);
+  if(!p) return;
+
+  const newCap = prompt('Caption for this photo:', p.caption || '');
+  if(newCap === null) return;
+  p.caption = newCap.trim();
+
+  const newDate = prompt('Date (YYYY-MM-DD):', p.date || '');
+  if(newDate !== null && newDate.trim()){
+    p.date = newDate.trim();
+  }
+
+  save();
+  renderGallery();
+  toast('Saved ❤️');
+}
+
+/* ---------- Fullscreen viewer ---------- */
+function openViewer(list, idx){
+  viewerList = list;
+  viewerIdx = idx;
+  showViewer();
+  document.getElementById('viewer').classList.add('on');
+  document.body.style.overflow = 'hidden';
+}
+
+function showViewer(){
+  const p = viewerList[viewerIdx];
+  if(!p) return;
+  const v = document.getElementById('viewer');
+  v.innerHTML = `
+    <button class="v-close" onclick="closeViewer()">✕</button>
+    <button class="v-nav v-prev" onclick="viewerMove(-1)">‹</button>
+    <button class="v-nav v-next" onclick="viewerMove(1)">›</button>
+    <img src="${p.src}" alt="">
+    <div class="v-cap">${esc(p.caption || '')} ${p.date ? '· ' + p.date : ''}</div>
+  `;
+}
+
+function viewerMove(d){
+  viewerIdx = (viewerIdx + d + viewerList.length) % viewerList.length;
+  showViewer();
+}
+
+function closeViewer(){
+  document.getElementById('viewer').classList.remove('on');
+  document.body.style.overflow = '';
+}
+
+/* ---------- Keyboard for viewer ---------- */
+document.addEventListener('keydown', e => {
+  const v = document.getElementById('viewer');
+  if(!v || !v.classList.contains('on')) return;
+  if(e.key === 'Escape') closeViewer();
+  if(e.key === 'ArrowLeft') viewerMove(-1);
+  if(e.key === 'ArrowRight') viewerMove(1);
+});
+
+/* ---------- Swipe for viewer ---------- */
+(function viewerSwipe(){
+  let startX = 0;
+  document.addEventListener('touchstart', e => {
+    const v = document.getElementById('viewer');
+    if(!v || !v.classList.contains('on')) return;
+    startX = e.touches[0].clientX;
+  });
+  document.addEventListener('touchend', e => {
+    const v = document.getElementById('viewer');
+    if(!v || !v.classList.contains('on')) return;
+    const dx = e.changedTouches[0].clientX - startX;
+    if(Math.abs(dx) > 50){
+      viewerMove(dx > 0 ? -1 : 1);
+    }
+  });
+})();
+
 /* ---------- easter eggs ---------- */
 document.addEventListener('dblclick', e=>{
   if(e.target.id === 'brand'){
@@ -291,6 +487,7 @@ $('#secretHeart').onclick = (e)=>{
   renderHero();
   fillSettings();
   switchTab(DATA.activeTab || 'her');
+  renderGallery();
   tickCounter();
   setInterval(tickCounter, 1000);
 })();
