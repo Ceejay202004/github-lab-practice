@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Our Little Universe ❤️</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,700;1,500&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body data-theme="pink">
+
+<div class="particles" id="particles"></div>
+
+<div class="wrap">
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="brand" id="brand" title="psst… double-tap me">Our Little Universe ❤️</div>
+    <div class="theme-pick" id="themePick">
+      <div class="dot pink on" data-t="pink" title="Romantic Pink"></div>
+      <div class="dot sunset" data-t="sunset" title="Sunset"></div>
+      <div class="dot midnight" data-t="midnight" title="Midnight Love"></div>
+      <div class="dot lavender" data-t="lavender" title="Lavender Dream"></div>
+      <div class="dot minimal" data-t="minimal" title="Minimal White"></div>
+    </div>
+  </div>
+
+  <!-- HERO -->
+  <div class="card hero">
+    <div class="couple">
+      <img class="avatar" id="avaA"
+        src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%23ffb3c9'/><stop offset='1' stop-color='%23ff8fb1'/></linearGradient></defs><rect width='120' height='120' fill='url(%23g)'/><text x='60' y='78' font-size='52' text-anchor='middle'>💑</text></svg>"
+        alt="me" onclick="document.getElementById('fileA').click()">
+      <input type="file" id="fileA" accept="image/*" style="display:none" onchange="uploadPhoto(event,'a')">
+      <div class="heart-anim">❤️</div>
+      <img class="avatar" id="avaB"
+        src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'><defs><linearGradient id='g2' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%23d9b3ff'/><stop offset='1' stop-color='%23a06cd5'/></linearGradient></defs><rect width='120' height='120' fill='url(%23g2)'/><text x='60' y='78' font-size='52' text-anchor='middle'>👩</text></svg>"
+        alt="her" onclick="document.getElementById('fileB').click()">
+      <input type="file" id="fileB" accept="image/*" style="display:none" onchange="uploadPhoto(event,'b')">
+    </div>
+
+    <h1 id="heroNames">You &amp; Me</h1>
+    <p class="msg" id="heroMsg">Every love story is beautiful, but ours is my favorite.</p>
+    <p class="since" id="sinceLine">Together since —</p>
+
+    <div class="counter" id="counter"></div>
+
+    <p style="margin-top:22px;font-size:.78rem;color:var(--muted);">
+      💡 Tap a photo to change it
+    </p>
+  </div>
+
+  <!-- NOTES -->
+  <div class="card">
+    <div class="sec-title">
+      <h2>💌 Our Notes</h2>
+    </div>
+    <div class="tabs">
+      <button id="tabHer" class="on her" onclick="switchTab('her')">💗 Notes for Her</button>
+      <button id="tabHim" class="him" onclick="switchTab('him')">💙 Notes for Me</button>
+    </div>
+
+    <div id="noteForm">
+      <textarea id="noteInput" placeholder="Write something sweet…" style="min-height:90px;"></textarea>
+      <div class="form-actions">
+        <button class="btn" onclick="addNote()">Save Note ❤️</button>
+      </div>
+    </div>
+
+    <div id="notesList" class="notes-list"></div>
+  </div>
+
+  <!-- SETTINGS -->
+  <div class="card">
+    <div class="sec-title"><h2>⚙️ Our Details</h2></div>
+    <label>Our names</label>
+    <div class="row-2">
+      <input id="inA" placeholder="Your name">
+      <input id="inB" placeholder="Her name">
+    </div>
+    <label>Together since</label>
+    <input id="inDate" type="date">
+    <label>Romantic message</label>
+    <textarea id="inMsg" placeholder="Every love story is beautiful, but ours is my favorite."></textarea>
+    <div class="form-actions">
+      <button class="btn" onclick="saveSettings()">Save ❤️</button>
+    </div>
+  </div>
+
+</div>
+
+<div class="secret-heart" id="secretHeart" title="don't click me…">💖</div>
+<div class="toast" id="toast"></div>
+
+<script src="script.js"></script>
+</body>
+</html>
