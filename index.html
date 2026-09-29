@@ -51,6 +51,17 @@
     </p>
   </div>
 
+  <!-- GALLERY -->
+  <div class="card">
+    <div class="sec-title">
+      <h2>📸 Our Gallery</h2>
+      <button class="btn sm" onclick="document.getElementById('galInput').click()">+ Add Photos</button>
+      <input type="file" id="galInput" accept="image/*" multiple style="display:none" onchange="addGalleryPhotos(event)">
+    </div>
+    <p class="hint">Tap a photo to view fullscreen · double-tap to favorite ❤️ · long-press to edit caption</p>
+    <div id="galleryGrid" class="gallery-grid"></div>
+  </div>
+
   <!-- NOTES -->
   <div class="card">
     <div class="sec-title">
@@ -92,6 +103,7 @@
 
 <div class="secret-heart" id="secretHeart" title="don't click me…">💖</div>
 <div class="toast" id="toast"></div>
+<div class="viewer" id="viewer"></div>
 
 <script src="script.js"></script>
 </body>
