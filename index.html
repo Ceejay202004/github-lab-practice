@@ -51,6 +51,15 @@
     </p>
   </div>
 
+  <!-- ANNIVERSARY REMINDER -->
+  <div class="card anniversary-card">
+    <div class="sec-title">
+      <h2>💍 Our Anniversaries</h2>
+    </div>
+    <p class="hint" id="yesDateLine">Set the date she said YES in "Our Details" below.</p>
+    <div id="anniversaryGrid" class="anniversary-grid"></div>
+  </div>
+
   <!-- GALLERY -->
   <div class="card">
     <div class="sec-title">
@@ -60,16 +69,6 @@
     </div>
     <p class="hint">Tap a photo to view fullscreen · double-tap to favorite ❤️ · long-press to edit caption</p>
     <div id="galleryGrid" class="gallery-grid"></div>
-  </div>
-
-  <!-- LOVE LETTERS -->
-  <div class="card">
-    <div class="sec-title">
-      <h2>💌 Love Letters</h2>
-      <button class="btn sm" onclick="openLetterEditor()">+ Write Letter</button>
-    </div>
-    <p class="hint">Tap any letter to open it · long-press to delete</p>
-    <div id="lettersList" class="letters-list"></div>
   </div>
 
   <!-- NOTES -->
@@ -102,6 +101,8 @@
     </div>
     <label>Together since</label>
     <input id="inDate" type="date">
+    <label>💍 The day she said YES (became my girlfriend)</label>
+    <input id="inYesDate" type="date">
     <label>Romantic message</label>
     <textarea id="inMsg" placeholder="Every love story is beautiful, but ours is my favorite."></textarea>
     <div class="form-actions">
@@ -114,9 +115,6 @@
 <div class="secret-heart" id="secretHeart" title="don't click me…">💖</div>
 <div class="toast" id="toast"></div>
 <div class="viewer" id="viewer"></div>
-<div class="modal" id="modal">
-  <div class="modal-box" id="modalBox"></div>
-</div>
 
 <script src="script.js"></script>
 </body>
