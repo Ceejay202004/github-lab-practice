@@ -12,8 +12,8 @@ function load(){
     const raw = localStorage.getItem(KEY);
     if(raw){
       const parsed = JSON.parse(raw);
-      // safety: make sure gallery exists
       if(!parsed.gallery) parsed.gallery = [];
+      if(!parsed.letters) parsed.letters = [];
       return parsed;
     }
   }catch(e){}
@@ -23,6 +23,7 @@ function load(){
     msg:"Every love story is beautiful, but ours is my favorite.",
     photos:{a:null, b:null},
     gallery:[],
+    letters:[],
     notes:{her:[], him:[]},
     theme:'pink',
     activeTab:'her'
@@ -116,7 +117,7 @@ function tickCounter(){
   });
 }
 
-/* ---------- render ---------- */
+/* ---------- render hero ---------- */
 function renderHero(){
   $('#brand').textContent = 'Our Little Universe ❤️';
   $('#heroNames').textContent = `${DATA.names.a} & ${DATA.names.b}`;
@@ -128,6 +129,7 @@ function renderHero(){
   if(DATA.photos.b) $('#avaB').src = DATA.photos.b;
 }
 
+/* ---------- render notes ---------- */
 function renderNotes(){
   const list = DATA.notes[DATA.activeTab] || [];
   const box = $('#notesList');
@@ -273,7 +275,6 @@ function burst(x, y, icon='❤️', count=14){
 let viewerList = [];
 let viewerIdx = 0;
 
-/* ---------- Add photos (auto-resize) ---------- */
 function addGalleryPhotos(e){
   const files = [...e.target.files];
   if(!files.length) return;
@@ -303,9 +304,7 @@ function addGalleryPhotos(e){
         };
 
         DATA.gallery.unshift(photo);
-        try {
-          save();
-        } catch(err) {
+        try { save(); } catch(err){
           DATA.gallery.shift();
           toast('Storage full — try smaller photos 💔');
           return;
@@ -323,7 +322,6 @@ function addGalleryPhotos(e){
   toast('Photos added ❤️');
 }
 
-/* ---------- Render gallery ---------- */
 function renderGallery(){
   const grid = document.getElementById('galleryGrid');
   if(!grid) return;
@@ -376,7 +374,6 @@ function renderGallery(){
   });
 }
 
-/* ---------- Edit caption & date ---------- */
 function editPhotoCaption(id){
   const p = DATA.gallery.find(x => x.id === id);
   if(!p) return;
@@ -395,7 +392,6 @@ function editPhotoCaption(id){
   toast('Saved ❤️');
 }
 
-/* ---------- Fullscreen viewer ---------- */
 function openViewer(list, idx){
   viewerList = list;
   viewerIdx = idx;
@@ -427,7 +423,6 @@ function closeViewer(){
   document.body.style.overflow = '';
 }
 
-/* ---------- Keyboard for viewer ---------- */
 document.addEventListener('keydown', e => {
   const v = document.getElementById('viewer');
   if(!v || !v.classList.contains('on')) return;
@@ -436,7 +431,6 @@ document.addEventListener('keydown', e => {
   if(e.key === 'ArrowRight') viewerMove(1);
 });
 
-/* ---------- Swipe for viewer ---------- */
 (function viewerSwipe(){
   let startX = 0;
   document.addEventListener('touchstart', e => {
@@ -453,6 +447,180 @@ document.addEventListener('keydown', e => {
     }
   });
 })();
+
+/* ============================================================
+   LOVE LETTERS
+   ============================================================ */
+
+const LETTER_TEMPLATES = [
+  "Open when you miss me",
+  "Open when you're sad",
+  "Open when you need motivation",
+  "Open on our anniversary",
+  "Open when we have a misunderstanding",
+  "Open when you want to know how much I love you",
+  "Open when you can't sleep",
+  "Open when you're happy",
+  "Open when you need a smile"
+];
+
+function renderLetters(){
+  const box = document.getElementById('lettersList');
+  if(!box) return;
+
+  const list = DATA.letters || [];
+  box.innerHTML = '';
+
+  if(!list.length){
+    box.innerHTML = `<div class="empty" style="grid-column:1/-1;">
+      No letters yet.<br>
+      Tap <b>"+ Write Letter"</b> to write your first one 💌
+    </div>`;
+    return;
+  }
+
+  list.slice().reverse().forEach(l => {
+    const card = document.createElement('div');
+    card.className = 'letter-card';
+    const preview = l.body.length > 60 ? l.body.slice(0,60) + '…' : l.body;
+    card.innerHTML = `
+      <div class="seal">${l.pin ? '🔒' : '💌'}</div>
+      <div class="l-title">${esc(l.title)}</div>
+      <div class="l-preview">${esc(preview)}</div>
+      <div class="l-date">
+        <span>${fmtDate(l.date)}</span>
+        ${l.pin ? '<span class="l-lock">PIN</span>' : ''}
+      </div>
+    `;
+
+    card.onclick = () => openLetter(l.id);
+
+    card.oncontextmenu = (e) => {
+      e.preventDefault();
+      if(confirm(`Delete "${l.title}"?`)){
+        DATA.letters = DATA.letters.filter(x => x.id !== l.id);
+        save();
+        renderLetters();
+        toast('Letter deleted');
+      }
+    };
+
+    box.appendChild(card);
+  });
+}
+
+function openLetterEditor(){
+  const chipHTML = LETTER_TEMPLATES
+    .map(t => `<button type="button" onclick="pickTemplate('${t.replace(/'/g,"\\'")}')">${t}</button>`)
+    .join('');
+
+  openModal(`
+    <button class="m-close" onclick="closeModal()">✕</button>
+    <h2>💌 Write a Love Letter</h2>
+    <p class="hint" style="margin-top:4px;">Pick a template or write your own title.</p>
+
+    <label>Title / When to open</label>
+    <input id="letterTitle" placeholder="Open when you miss me…">
+    <div class="template-chips">${chipHTML}</div>
+
+    <label>Your letter</label>
+    <textarea id="letterBody" placeholder="My love,&#10;&#10;…" style="min-height:180px;"></textarea>
+
+    <label>Optional PIN (leave empty for no lock)</label>
+    <input id="letterPin" placeholder="e.g. 1234" maxlength="8" inputmode="numeric">
+
+    <div class="form-actions">
+      <button class="btn ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn" onclick="saveLetter()">Seal the Letter 💌</button>
+    </div>
+  `);
+}
+
+function pickTemplate(t){
+  const input = document.getElementById('letterTitle');
+  if(input) input.value = t;
+}
+
+function saveLetter(){
+  const title = document.getElementById('letterTitle').value.trim();
+  const body  = document.getElementById('letterBody').value.trim();
+  const pin   = document.getElementById('letterPin').value.trim();
+
+  if(!title){ toast('Add a title first 💕'); return; }
+  if(!body){ toast('Write your letter 💕'); return; }
+
+  DATA.letters.push({
+    id: Math.random().toString(36).slice(2,10),
+    title,
+    body,
+    pin: pin || null,
+    date: new Date().toISOString()
+  });
+
+  try { save(); } catch(err){
+    DATA.letters.pop();
+    toast('Storage full 💔');
+    return;
+  }
+
+  closeModal();
+  renderLetters();
+  toast('Letter sealed 💌');
+  burst(window.innerWidth/2, 200, '💌', 16);
+}
+
+function openLetter(id){
+  const l = DATA.letters.find(x => x.id === id);
+  if(!l) return;
+
+  if(l.pin){
+    const entered = prompt('🔒 This letter is protected. Enter PIN:');
+    if(entered !== l.pin){
+      toast('Wrong PIN 💔');
+      return;
+    }
+  }
+
+  openModal(`
+    <button class="m-close" onclick="closeModal()">✕</button>
+    <div class="letter-open">
+      <div class="l-icon">💖</div>
+      <div class="l-title-open">${esc(l.title)}</div>
+      <div class="l-date-open">${fmtDate(l.date)}</div>
+      <div class="l-body-open">${esc(l.body)}</div>
+      <div class="form-actions" style="margin-top:18px;justify-content:center;">
+        <button class="btn ghost" onclick="deleteLetter('${l.id}')">Delete</button>
+        <button class="btn" onclick="closeModal()">Close ❤️</button>
+      </div>
+    </div>
+  `);
+
+  burst(window.innerWidth/2, window.innerHeight/2, '💖', 20);
+}
+
+function deleteLetter(id){
+  if(!confirm('Delete this letter?')) return;
+  DATA.letters = DATA.letters.filter(x => x.id !== id);
+  save();
+  closeModal();
+  renderLetters();
+  toast('Letter deleted');
+}
+
+/* ---------- modal helpers ---------- */
+function openModal(html){
+  document.getElementById('modalBox').innerHTML = html;
+  document.getElementById('modal').classList.add('on');
+  document.body.style.overflow = 'hidden';
+}
+function closeModal(){
+  document.getElementById('modal').classList.remove('on');
+  document.body.style.overflow = '';
+}
+// close modal on backdrop tap
+document.getElementById('modal').addEventListener('click', e => {
+  if(e.target.id === 'modal') closeModal();
+});
 
 /* ---------- easter eggs ---------- */
 document.addEventListener('dblclick', e=>{
@@ -488,6 +656,7 @@ $('#secretHeart').onclick = (e)=>{
   fillSettings();
   switchTab(DATA.activeTab || 'her');
   renderGallery();
+  renderLetters();
   tickCounter();
   setInterval(tickCounter, 1000);
 })();
